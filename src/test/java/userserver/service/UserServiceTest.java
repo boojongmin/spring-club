@@ -1,5 +1,7 @@
 package userserver.service;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.test.context.TestPropertySource;
 import userserver.domain.User;
 import userserver.model.TestModelFactory;
 import userserver.repository.UserRepository;
@@ -9,26 +11,57 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import userserver.util.TestUtil;
+
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @DataMongoTest
+@TestPropertySource("classpath:application.properties")
 public class UserServiceTest {
-    @Autowired UserRepository userRepository;
+    @Autowired UserRepository repository;
     UserService userService;
+    @Value("${clubservice.paging-size}") int pageSize;
 
     @Before
     public void setUp() {
-        this.userService = new UserService(userRepository);
-        userRepository.deleteAll().block();
+        this.userService = new UserService(repository, pageSize);
+        repository.deleteAll().block();
     }
 
     @Test
-    public void testService() {
-        User user = TestModelFactory.createUser();
-        userService.createUser(user).block();
-        User result = userService.getUser(user.getUserid()).block();
-        assertThat(result).isEqualTo(user);
+    public void createUser() {
+        User user = userService.save(TestModelFactory.createUser()).block();
+        assertThat(user.getId()).isNotBlank();
+    }
+
+    @Test
+    public void getUserList() {
+        TestUtil.createUsers(repository);
+        long count = userService.getList(0)
+                .toStream()
+                .count();
+        int sumOfAge = userService.getList(1).toStream().mapToInt(User::getAge).sum();
+        int respectSumOfAge = IntStream.range(10, 20).sum();
+        assertThat(count).isEqualTo(pageSize);
+        assertThat(sumOfAge).isEqualTo(respectSumOfAge);
+    }
+
+    @Test
+    public void getUser() {
+        User user = TestUtil.createUser(repository);
+        User resultUser = userService.getUser(user.getId()).block();
+        assertThat(resultUser).isNotNull();
+    }
+
+    @Test
+    public void deleteUser() {
+        User user = TestUtil.createUser(repository);
+        userService.delete(user.getId()).block();
+
+        User resultUser = userService.getUser(user.getId()).block();
+        assertThat(resultUser).isNull();
     }
 }

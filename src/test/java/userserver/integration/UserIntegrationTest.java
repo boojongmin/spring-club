@@ -1,5 +1,6 @@
 package userserver.integration;
 
+import org.springframework.http.HttpStatus;
 import userserver.domain.User;
 import userserver.model.TestModelFactory;
 import userserver.repository.UserRepository;
@@ -13,9 +14,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.test.StepVerifier;
+import userserver.util.TestUtil;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,23 +46,19 @@ public class UserIntegrationTest {
 
     @Test
     public void getUser() {
-        User input = TestModelFactory.createUser();
+        User user = TestUtil.createUser(userRepository);
 
-        userRepository.save(input).block();
         this.client
-                .post()
-                .uri("/api/user/select")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(fromObject(input.getUserid()))
+                .get()
+                .uri(String.format("/api/user/%s", user.getId()))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(User.class)
                 .consumeWith(x -> {
-                    User output = x.getResponseBody();
-                    assertThat(output.getId()).isEqualTo(null);
-                    assertThat(output.getUserid()).isEqualTo(input.getUserid());
-                    assertThat(output.getPassword()).isEqualTo(input.getPassword());
-                    assertThat(output.getName()).isEqualTo(input.getName());
+                    User result = x.getResponseBody();
+                    assertThat(result.getId()).isEqualTo(user.getId());
+                    assertThat(result.getName()).isEqualTo(user.getName());
+                    assertThat(result.getAge()).isEqualTo(user.getAge());
                 });
     }
 
@@ -68,7 +67,7 @@ public class UserIntegrationTest {
         User user = TestModelFactory.createUser();
         this.client
                 .post()
-                .uri("/api/user/create")
+                .uri("/api/user")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(fromObject(user))
                 .exchange()
@@ -80,10 +79,87 @@ public class UserIntegrationTest {
     }
 
     @Test
+    public void updateUser() {
+        User user = TestUtil.createUser(userRepository);
+        user.setName("modify name");
+        user.setAge(999);
+        this.client
+                .put()
+                .uri("/api/user")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(fromObject(user))
+                .exchange()
+                .expectStatus().isOk();
+
+        StepVerifier.create(userRepository.findAll())
+                .consumeNextWith(x -> {
+                    assertThat(x.getId()).isEqualTo(user.getId());
+                    assertThat(x.getName()).isEqualTo(user.getName());
+                    assertThat(x.getAge()).isEqualTo(user.getAge());
+                })
+                .expectComplete()
+                .verify();
+
+
+    }
+
+    @Test
+    public void getUserList() {
+        TestUtil.createUsers(userRepository);
+        this.client
+                .get()
+                .uri("/api/user/list/1")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(List.class)
+                .consumeWith(x -> {
+                    List list = x.getResponseBody();
+                    assertThat(list.size()).isEqualTo(10);
+                });
+
+        this.client
+                .get()
+                .uri("/api/user/list")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(List.class)
+                .consumeWith(x -> {
+                    List list = x.getResponseBody();
+                    assertThat(list.size()).isEqualTo(10);
+                });
+
+        this.client
+                .get()
+                .uri("/api/user/list/")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(List.class)
+                .consumeWith(x -> {
+                    List list = x.getResponseBody();
+                    assertThat(list.size()).isEqualTo(10);
+                });
+    }
+
+    @Test
+    public void getDeleteUser() {
+        User user = TestUtil.createUser(userRepository);
+        this.client
+                .delete()
+                .uri(String.format("/api/user/%s", user.getId()))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Void.class)
+                .consumeWith(x -> {
+                    assertThat(x.getStatus()).isEqualTo(HttpStatus.OK);
+                });
+    }
+
+    @Test
     public void createUser_invalid_request_body_then_return_status_code_422() {
         User user = TestModelFactory.createUser();
         // set invalid model
-        user.setUserid("");
+        user.setName("");
+        user.setAge(-1);
         this.client
                 .post()
                 .uri("/api/user/create")

@@ -1,6 +1,7 @@
 package userserver.handler;
 
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.http.HttpMethod;
+import reactor.core.publisher.Flux;
 import userserver.domain.User;
 import userserver.handler.validator.ModelValidator;
 import userserver.model.TestModelFactory;
@@ -21,6 +22,7 @@ import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 
@@ -38,11 +40,36 @@ public class UserHandlerTest {
     }
 
     @Test
-    public void getUser() {
+    public void saveUser() {
         User user = TestModelFactory.createUser();
-        MockServerRequest request = MockServerRequest.builder().body(Mono.just(user.getUserid()));
-        given(userService.getUser(user.getUserid())).willReturn(Mono.just(user));
-        Mono<ServerResponse> response = handler.getUser(request);
+        MockServerRequest postRequest = MockServerRequest.builder().method(HttpMethod.POST).body(Mono.just(user));
+        MockServerRequest putRequest = MockServerRequest.builder().method(HttpMethod.PUT).body(Mono.just(user));
+        given(userService.save(user)).willReturn(Mono.empty());
+
+        Mono<ServerResponse> postResponse = handler.saveUser(postRequest);
+        Mono<ServerResponse> putResponse = handler.saveUser(putRequest);
+
+        StepVerifier.create(postResponse)
+                .consumeNextWith(x -> {
+                    assertThat(x.statusCode()).isEqualTo(HttpStatus.CREATED);
+                })
+                .expectComplete()
+                .verify();
+
+        StepVerifier.create(putResponse)
+                .consumeNextWith(x -> {
+                    assertThat(x.statusCode()).isEqualTo(HttpStatus.OK);
+                })
+                .expectComplete()
+                .verify();
+
+    }
+
+    @Test
+    public void getUserList() {
+        MockServerRequest request = MockServerRequest.builder().pathVariable("page", "0").build();
+        given(userService.getList(0)).willReturn(Flux.empty());
+        Mono<ServerResponse> response = handler.getUserList(request);
         StepVerifier.create(response)
                 .consumeNextWith(x -> {
                     assertThat(x.statusCode()).isEqualTo(HttpStatus.OK);
@@ -52,16 +79,34 @@ public class UserHandlerTest {
     }
 
     @Test
-    public void createUser() {
+    public void getUser() {
         User user = TestModelFactory.createUser();
-        MockServerRequest request = MockServerRequest.builder().body(Mono.just(user));
-        given(userService.createUser(user)).willReturn(Mono.empty());
-        Mono<ServerResponse> response = handler.createUser(request);
+        user.setId("testid");
+        MockServerRequest request = MockServerRequest.builder().pathVariable("id", user.getId()).build();
+        given(userService.getUser(user.getId())).willReturn(Mono.just(user));
+        Mono<ServerResponse> response = handler.getUser(request);
         StepVerifier.create(response)
                 .consumeNextWith(x -> {
-                    assertThat(x.statusCode()).isEqualTo(HttpStatus.CREATED);
+                    assertThat(x.statusCode()).isEqualTo(HttpStatus.OK);
+                    // TODO BodyInserterServerResponse response body의 값을 가져올 수가 없다... 확인 필요
                 })
                 .expectComplete()
                 .verify();
     }
+
+    @Test
+    public void deleteUser() {
+        MockServerRequest request = MockServerRequest.builder().body(Mono.just("testId"));
+        given(userService.delete(any())).willReturn(Mono.empty());
+        Mono<ServerResponse> response = handler.deleteUser(request);
+        StepVerifier.create(response)
+                .consumeNextWith(x -> {
+                    assertThat(x.statusCode()).isEqualTo(HttpStatus.OK);
+                })
+                .expectComplete()
+                .verify();
+    }
+
+
+
 }

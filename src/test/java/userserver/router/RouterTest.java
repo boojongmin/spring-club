@@ -35,22 +35,38 @@ public class RouterTest {
     @Test
     public void createUser() {
         User user = TestModelFactory.createUser();
-        given(handler.createUser(any())).willReturn(created(any()).build());
+        given(handler.saveUser(any())).willReturn(created(any()).build());
         this.testClient
                 .post()
-                .uri("/api/user/create")
+                .uri("/api/user")
+                .body(fromObject(user))
+                .exchange()
+                .expectStatus().isCreated();
+
+        this.testClient
+                .put()
+                .uri("/api/user")
                 .body(fromObject(user))
                 .exchange()
                 .expectStatus().isCreated();
     }
 
     @Test
+    public void getUserList() {
+        given(handler.getUserList(any())).willReturn(ok().build());
+        this.testClient
+                .get()
+                .uri("/api/user/list")
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @Test
     public void getUser() {
         given(handler.getUser(any())).willReturn(ok().build());
         this.testClient
-                .post()
+                .get()
                 .uri("/api/user/select")
-                .body(fromObject("000000-000000"))
                 .exchange()
                 .expectStatus().isOk();
     }
