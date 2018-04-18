@@ -11,7 +11,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import userserver.util.TestUtil;
+import userserver.util.DomainUtil;
 
 import java.util.stream.IntStream;
 
@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(SpringRunner.class)
 @DataMongoTest
 @TestPropertySource("classpath:application.properties")
-public class UserServiceTest {
+public class UserJoinServiceTest {
     @Autowired UserRepository repository;
     UserService userService;
     @Value("${clubservice.paging-size}") int pageSize;
@@ -39,7 +39,7 @@ public class UserServiceTest {
 
     @Test
     public void getUserList() {
-        TestUtil.createUsers(repository);
+        DomainUtil.createUsers(repository);
         long count = userService.getList(0)
                 .toStream()
                 .count();
@@ -51,14 +51,14 @@ public class UserServiceTest {
 
     @Test
     public void getUser() {
-        User user = TestUtil.createUser(repository);
+        User user = DomainUtil.createUser(repository);
         User resultUser = userService.getUser(user.getId()).block();
         assertThat(resultUser).isNotNull();
     }
 
     @Test
     public void deleteUser() {
-        User user = TestUtil.createUser(repository);
+        User user = DomainUtil.createUser(repository);
         userService.delete(user.getId()).block();
 
         User resultUser = userService.getUser(user.getId()).block();

@@ -12,7 +12,7 @@ import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
 
-public class TestUtil {
+public class DomainUtil {
     public static List<User> createUsers(UserRepository userRepository) {
         long now = new Date().getTime();
         List<User> list = IntStream.range(0, 100)

@@ -14,12 +14,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.test.StepVerifier;
-import userserver.util.TestUtil;
+import userserver.util.DomainUtil;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.web.reactive.function.BodyInserters.fromObject;
@@ -46,7 +44,7 @@ public class UserIntegrationTest {
 
     @Test
     public void getUser() {
-        User user = TestUtil.createUser(userRepository);
+        User user = DomainUtil.createUser(userRepository);
 
         this.client
                 .get()
@@ -80,7 +78,7 @@ public class UserIntegrationTest {
 
     @Test
     public void updateUser() {
-        User user = TestUtil.createUser(userRepository);
+        User user = DomainUtil.createUser(userRepository);
         user.setName("modify name");
         user.setAge(999);
         this.client
@@ -105,7 +103,7 @@ public class UserIntegrationTest {
 
     @Test
     public void getUserList() {
-        TestUtil.createUsers(userRepository);
+        DomainUtil.createUsers(userRepository);
         this.client
                 .get()
                 .uri("/api/user/list/1")
@@ -142,7 +140,7 @@ public class UserIntegrationTest {
 
     @Test
     public void getDeleteUser() {
-        User user = TestUtil.createUser(userRepository);
+        User user = DomainUtil.createUser(userRepository);
         this.client
                 .delete()
                 .uri(String.format("/api/user/%s", user.getId()))

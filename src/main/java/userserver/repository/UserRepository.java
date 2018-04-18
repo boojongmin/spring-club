@@ -10,4 +10,5 @@ import userserver.domain.User;
 import java.util.Scanner;
 
 public interface UserRepository extends ReactiveSortingRepository<User, String> {
+//    Flux<User> findByClubId(String id);
 }

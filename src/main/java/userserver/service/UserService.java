@@ -26,7 +26,6 @@ public class UserService {
     }
 
     public Mono<User> save(User user) {
-
         return repository.save(user);
     }
 
