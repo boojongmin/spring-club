@@ -40,11 +40,10 @@ public class RouterTest {
      *  User Router Test
      */
     @Test
-    public void createUser() {
+    public void saveUser() {
         User user = TestModelFactory.createUser();
         given(userHandler.save(any())).willReturn(created(any()).build());
         this.testClient.post().uri("/api/user").body(fromObject(user)).exchange().expectStatus().isCreated();
-
         this.testClient.put().uri("/api/user").body(fromObject(user)).exchange().expectStatus().isCreated();
     }
 
@@ -52,14 +51,28 @@ public class RouterTest {
     public void getUserList() {
         given(userHandler.getList(any())).willReturn(ok().build());
         this.testClient.get().uri("/api/user/list").exchange().expectStatus().isOk();
+        this.testClient.get().uri("/api/user/list/").exchange().expectStatus().isOk();
+        this.testClient.get().uri("/api/user/list/0").exchange().expectStatus().isOk();
     }
 
     @Test
     public void getUser() {
         given(userHandler.get(any())).willReturn(ok().build());
         this.testClient.get().uri("/api/user" + "/userid").exchange().expectStatus().isOk();
+        this.testClient.get().uri("/api/user").exchange().expectStatus().isNotFound();
     }
 
+    @Test
+    public void deleteUser() {
+        given(userHandler.delete(any())).willReturn(ok().build());
+        this.testClient.delete().uri("/api/user" + "/userid").exchange().expectStatus().isOk();
+    }
+
+    @Test
+    public void getClubFromUser() {
+        given(userHandler.getClub(any())).willReturn(ok().build());
+        this.testClient.get().uri("/api/user/club/" + "/clubid" ).exchange().expectStatus().isOk();
+    }
 
     /**
      *  Club Router Test
