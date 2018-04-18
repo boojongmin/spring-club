@@ -21,7 +21,7 @@ public class User {
     @NonNull @NotBlank  private String name;
     @NonNull @NotNull @Positive private Integer age;
     @Indexed @NonNull private Date createDate;
-    @DBRef private Club club;
+    @Indexed private String clubId;
 
     @Override
     public boolean equals(Object o) {

@@ -25,7 +25,6 @@ public class Club {
     @Id private String id;
     @NonNull @NotBlank @Size(min = 5, max = 20) private String name;
     @NonNull @Positive private Integer minAgeForJoin;
-    @DBRef(db = "users") private Set<User> users = new HashSet<>();
     @Indexed @NonNull private Date createDate;
 
     @Override
@@ -47,7 +46,6 @@ public class Club {
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
                 ", minAgeForJoin=" + minAgeForJoin +
-                ", users=" + users +
                 ", createDate=" + createDate +
                 '}';
     }

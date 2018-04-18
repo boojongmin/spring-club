@@ -1,8 +1,10 @@
 package userserver.integration;
 
 import org.springframework.http.HttpStatus;
+import userserver.domain.Club;
 import userserver.domain.User;
 import userserver.model.TestModelFactory;
+import userserver.repository.ClubRepository;
 import userserver.repository.UserRepository;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,11 +31,13 @@ import static org.springframework.web.reactive.function.client.ExchangeFilterFun
 public class UserIntegrationTest {
     @Autowired WebTestClient client;
     @Autowired UserRepository userRepository;
+    @Autowired ClubRepository clubRepository;
     @LocalServerPort private int port;
 
     @Before
     public void setup() {
         userRepository.deleteAll().block();
+        clubRepository.deleteAll().block();
 
         this.client = WebTestClient
                 .bindToServer()
@@ -42,26 +46,9 @@ public class UserIntegrationTest {
                 .build();
     }
 
-    @Test
-    public void getUser() {
-        User user = DomainUtil.createUser(userRepository);
-
-        this.client
-                .get()
-                .uri(String.format("/api/user/%s", user.getId()))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(User.class)
-                .consumeWith(x -> {
-                    User result = x.getResponseBody();
-                    assertThat(result.getId()).isEqualTo(user.getId());
-                    assertThat(result.getName()).isEqualTo(user.getName());
-                    assertThat(result.getAge()).isEqualTo(user.getAge());
-                });
-    }
 
     @Test
-    public void createUser() {
+    public void save_create() {
         User user = TestModelFactory.createUser();
         this.client
                 .post()
@@ -77,7 +64,25 @@ public class UserIntegrationTest {
     }
 
     @Test
-    public void updateUser() {
+    public void save_create_user_invalid_request_body_then_return_status_code_422() {
+        User user = TestModelFactory.createUser();
+        // set invalid model
+        user.setName("");
+        user.setAge(-1);
+        this.client
+                .post()
+                .uri("/api/user")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(fromObject(user))
+                .exchange()
+                .expectStatus()
+                .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+//                .is4xxClientError()
+    }
+
+
+    @Test
+    public void save_update() {
         User user = DomainUtil.createUser(userRepository);
         user.setName("modify name");
         user.setAge(999);
@@ -97,12 +102,27 @@ public class UserIntegrationTest {
                 })
                 .expectComplete()
                 .verify();
-
-
     }
 
     @Test
-    public void getUserList() {
+    public void get() {
+        User user = DomainUtil.createUser(userRepository);
+        this.client
+                .get()
+                .uri(String.format("/api/user/%s", user.getId()))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(User.class)
+                .consumeWith(x -> {
+                    User result = x.getResponseBody();
+                    assertThat(result.getId()).isEqualTo(user.getId());
+                    assertThat(result.getName()).isEqualTo(user.getName());
+                    assertThat(result.getAge()).isEqualTo(user.getAge());
+                });
+    }
+
+    @Test
+    public void getList() {
         DomainUtil.createUsers(userRepository);
         this.client
                 .get()
@@ -139,7 +159,7 @@ public class UserIntegrationTest {
     }
 
     @Test
-    public void getDeleteUser() {
+    public void delete() {
         User user = DomainUtil.createUser(userRepository);
         this.client
                 .delete()
@@ -152,19 +172,26 @@ public class UserIntegrationTest {
                 });
     }
 
+
     @Test
-    public void createUser_invalid_request_body_then_return_status_code_422() {
-        User user = TestModelFactory.createUser();
-        // set invalid model
-        user.setName("");
-        user.setAge(-1);
+    public void getClub() {
+        User user = DomainUtil.createUser(userRepository);
+        Club club = DomainUtil.createClub(clubRepository);
+        user.setClubId(club.getId());
+        userRepository.save(user).block();
+
         this.client
-                .post()
-                .uri("/api/user/create")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(fromObject(user))
+                .get()
+                .uri(String.format("/api/user/club/%s", user.getId()))
                 .exchange()
-                .expectStatus()
-                .is4xxClientError();
+                .expectStatus().isOk()
+                .expectBody(Club.class)
+                .consumeWith(x -> {
+                    Club result = x.getResponseBody();
+                    assertThat(result.getId()).isEqualTo(club.getId());
+                    assertThat(result.getName()).isEqualTo(club.getName());
+                    assertThat(result.getMinAgeForJoin()).isEqualTo(club.getMinAgeForJoin());
+                });
     }
+
 }

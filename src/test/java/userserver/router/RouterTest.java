@@ -1,7 +1,9 @@
 package userserver.router;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import userserver.configuration.RoutingConfiguration;
 import userserver.domain.User;
+import userserver.handler.ClubHandler;
 import userserver.handler.UserHandler;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,52 +25,84 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 @RunWith(SpringRunner.class)
 @Import(RoutingConfiguration.class)
 public class RouterTest {
-    @Autowired RouterFunction router;
-    @MockBean UserHandler handler;
+    @Autowired @Qualifier("userRouter") RouterFunction userRouter;
+    @Autowired @Qualifier("clubRouter") RouterFunction clubRouter;
+    @MockBean UserHandler userHandler;
+    @MockBean ClubHandler clubHandler;
     private WebTestClient testClient;
 
     @Before
     public void setUp() {
-        this.testClient = WebTestClient.bindToRouterFunction(router).build();
+        this.testClient = WebTestClient.bindToRouterFunction(userRouter.and(clubRouter)).build();
     }
 
+    /**
+     *  User Router Test
+     */
     @Test
     public void createUser() {
         User user = TestModelFactory.createUser();
-        given(handler.saveUser(any())).willReturn(created(any()).build());
-        this.testClient
-                .post()
-                .uri("/api/user")
-                .body(fromObject(user))
-                .exchange()
-                .expectStatus().isCreated();
+        given(userHandler.save(any())).willReturn(created(any()).build());
+        this.testClient.post().uri("/api/user").body(fromObject(user)).exchange().expectStatus().isCreated();
 
-        this.testClient
-                .put()
-                .uri("/api/user")
-                .body(fromObject(user))
-                .exchange()
-                .expectStatus().isCreated();
+        this.testClient.put().uri("/api/user").body(fromObject(user)).exchange().expectStatus().isCreated();
     }
 
     @Test
     public void getUserList() {
-        given(handler.getUserList(any())).willReturn(ok().build());
-        this.testClient
-                .get()
-                .uri("/api/user/list")
-                .exchange()
-                .expectStatus().isOk();
+        given(userHandler.getList(any())).willReturn(ok().build());
+        this.testClient.get().uri("/api/user/list").exchange().expectStatus().isOk();
     }
 
     @Test
     public void getUser() {
-        given(handler.getUser(any())).willReturn(ok().build());
-        this.testClient
-                .get()
-                .uri("/api/user/select")
-                .exchange()
-                .expectStatus().isOk();
+        given(userHandler.get(any())).willReturn(ok().build());
+        this.testClient.get().uri("/api/user" + "/userid").exchange().expectStatus().isOk();
     }
+
+
+    /**
+     *  Club Router Test
+     */
+    @Test
+    public void createClub() {
+        User user = TestModelFactory.createUser();
+        given(clubHandler.save(any())).willReturn(created(any()).build());
+        this.testClient.post().uri("/api/club").body(fromObject(user)).exchange().expectStatus().isCreated();
+        this.testClient.put().uri("/api/club").body(fromObject(user)).exchange().expectStatus().isCreated();
+    }
+
+    @Test
+    public void getClubList() {
+        given(clubHandler.getList(any())).willReturn(ok().build());
+        this.testClient.get().uri("/api/club/list").exchange().expectStatus().isOk();
+        this.testClient.get().uri("/api/club/list/0").exchange().expectStatus().isOk();
+        this.testClient.get().uri("/api/club/list/").exchange().expectStatus().isOk();
+    }
+
+    @Test
+    public void getClub() {
+        given(clubHandler.get(any())).willReturn(ok().build());
+        this.testClient.get().uri("/api/club" + "/clubid").exchange().expectStatus().isOk();
+    }
+
+    @Test
+    public void deleteClub() {
+        given(clubHandler.delete(any())).willReturn(ok().build());
+        this.testClient.delete().uri("/api/club" + "/clubid").exchange().expectStatus().isOk();
+    }
+
+    @Test
+    public void joinClub() {
+        given(clubHandler.join(any())).willReturn(ok().build());
+        this.testClient.post().uri("/api/club/join").exchange().expectStatus().isOk();
+    }
+
+    @Test
+    public void leaveClub() {
+        given(clubHandler.leave(any())).willReturn(ok().build());
+        this.testClient.post().uri("/api/club/leave").exchange().expectStatus().isOk();
+    }
+
 }
 

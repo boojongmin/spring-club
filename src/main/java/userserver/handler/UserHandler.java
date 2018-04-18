@@ -3,6 +3,7 @@ package userserver.handler;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import userserver.domain.Club;
 import userserver.handler.validator.ModelValidator;
 import userserver.service.UserService;
 import lombok.NonNull;
@@ -28,35 +29,40 @@ public class UserHandler {
     @NonNull private final ModelValidator validator;
 
 
-    public Mono<ServerResponse> getUserList(ServerRequest serverRequest) {
+    public Mono<ServerResponse> getList(ServerRequest serverRequest) {
         String pageStr = getPathVariable(serverRequest, "page");
         int page = StringUtils.isEmpty(pageStr) ? 0 : Integer.parseInt(pageStr);
         Flux<User> body = userService.getList(page);
-//                 TODO check blocking?
-//                .collect(Collectors.toList());
         return ok().body(fromPublisher(body, User.class));
     }
 
-    public Mono<ServerResponse> getUser(ServerRequest serverRequest) {
+    public Mono<ServerResponse> get(ServerRequest serverRequest) {
         Mono<ServerResponse> notFound = ServerResponse.notFound().build();
         String id = getPathVariable(serverRequest, "id");
-        return userService.getUser(id)
+        return userService.get(id)
                 .flatMap(x -> ok().body(fromObject(x)) )
                 .switchIfEmpty(notFound);
     }
 
-    public Mono<ServerResponse> saveUser(ServerRequest serverRequest) {
+    public Mono<ServerResponse> save(ServerRequest serverRequest) {
         return serverRequest
                 .bodyToMono(User.class)
                 .flatMap(validator::validate)
                 .flatMap(userService::save)
                 .then( serverRequest.method() == HttpMethod.POST ?
-                            created(URI.create("/api/user/select")).build() : ok().build() );
+                            created(URI.create("/api/user")).build() : ok().build() );
     }
 
-    public Mono<ServerResponse> deleteUser(ServerRequest serverRequest) {
+    public Mono<ServerResponse> delete(ServerRequest serverRequest) {
         String id = getPathVariable(serverRequest, "id");
         return userService.delete(id)
                 .then(ok().build());
+    }
+
+    public Mono<ServerResponse> getClub(ServerRequest serverRequest) {
+        String id = getPathVariable(serverRequest, "id");
+        Mono<Club> club = userService.getClub(id);
+        return club
+                .flatMap(x -> ok().body(fromObject(x)));
     }
 }
